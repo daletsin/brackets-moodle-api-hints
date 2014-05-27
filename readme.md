@@ -1,0 +1,1 @@
+Extension para el editor adobe Brackets, permite el autocompletado de funciones moodle
