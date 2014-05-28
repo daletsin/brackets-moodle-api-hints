@@ -5,13 +5,13 @@ define(function (require, exports, module) {
     "use strict";
 
     var AppInit             = brackets.getModule("utils/AppInit"),
-        CodeHintManager     = brackets.getModule("editor/CodeHintManager"),
-        LanguageManager     = brackets.getModule("language/LanguageManager");
+        CodeHintManager     = brackets.getModule("editor/CodeHintManager");
     
-    var moodleapi = require('text!moodleapi.txt');
+    var moodlejson = require('text!moodleapi.json');
+    
+    var moodleapi = JSON.parse(moodlejson);
     
     var lastLine,
-        cachedWordList,
         tokenDefinition,
         currentTokenDefinition;
     
@@ -20,9 +20,8 @@ define(function (require, exports, module) {
      */
     function MoodleApiHint() {
         this.lastLine = 0;
-        this.cachedWordList = [];
-        this.tokenDefinition = /[a-zA-Z\$][a-zA-Z0-9_\$\, \(\)\"\"\'\'\=<>\-\*\/\:\.]{2,}/g;
-        this.currentTokenDefinition = /[a-zA-Z\$][a-zA-Z0-9_\$\, \(\)\"\"\'\'\=<>\-\*\/\:\.]+$/g;
+        this.tokenDefinition = /[a-zA-Z][a-zA-Z0-9_]{2,}/g;
+        this.currentTokenDefinition = /[a-zA-Z][a-zA-Z0-9_]+$/g;
     }
     
     
@@ -45,28 +44,16 @@ define(function (require, exports, module) {
         this.editor = editor;
         var cursor = this.editor.getCursorPos();
         
-        // if it is not the same line as the last input - rebuild word list
-        if(cursor.line != this.lastLine){
-            var rawWordList = moodleapi.match(this.tokenDefinition);
-            
-            this.cachedWordList = [];
-            for(var i in rawWordList){
-               var word = rawWordList[i]; if(this.cachedWordList.indexOf(word)==-1){
-                   this.cachedWordList.push(word);
-               }
-            }
-        }
         this.lastLine = cursor.line;
         
         // if has entered more than 2 characters - start completion
         var lineBeginning = {line:cursor.line,ch:0};
         var textBeforeCursor = this.editor.document.getRange(lineBeginning, cursor);
         var symbolBeforeCursorArray = textBeforeCursor.match(this.currentTokenDefinition);
-        console.log(symbolBeforeCursorArray);
         if(symbolBeforeCursorArray){
             // find if the half-word inputed is in the list
-            for(var j in this.cachedWordList){
-                if(this.cachedWordList[j].indexOf(symbolBeforeCursorArray[0])===0){
+            for(var j in moodleapi['functions']){
+                if(moodleapi['functions'][j]['label'].indexOf(symbolBeforeCursorArray[0])===0){
                     return true;  
                 }
             }
@@ -77,8 +64,6 @@ define(function (require, exports, module) {
     };
        
     /**
-     * Returns a list of availble CSS propertyname or -value hints if possible for the current
-     * editor context. 
      * 
      * @param {Editor} implicitChar 
      * Either null, if the hinting request was explicit, or a single character
@@ -106,9 +91,9 @@ define(function (require, exports, module) {
         var textBeforeCursor = this.editor.document.getRange(lineBeginning, cursor);
         var symbolBeforeCursorArray = textBeforeCursor.match(this.currentTokenDefinition);
         var hintList = [];
-        for(var i in this.cachedWordList){
-            if(this.cachedWordList[i].indexOf(symbolBeforeCursorArray[0])===0){
-                hintList.push(this.cachedWordList[i]);
+        for(var i in moodleapi['functions']){
+            if(moodleapi['functions'][i]['label'].indexOf(symbolBeforeCursorArray[0])===0){
+                hintList.push(moodleapi['functions'][i]['label']);
             }
         }
 
@@ -131,19 +116,24 @@ define(function (require, exports, module) {
      * additional explicit hint request.
      */
     MoodleApiHint.prototype.insertHint = function (hint) {
+        console.log(hint);
         var cursor = this.editor.getCursorPos();
         var lineBeginning = {line:cursor.line,ch:0};
         var textBeforeCursor = this.editor.document.getRange(lineBeginning, cursor);
         var indexOfTheSymbol = textBeforeCursor.search(this.currentTokenDefinition);
         var replaceStart = {line:cursor.line,ch:indexOfTheSymbol};
-        this.editor.document.replaceRange(hint, replaceStart, cursor);
+        for(var k in moodleapi['functions']){
+            if(moodleapi['functions'][k]['label'] == hint){
+                this.editor.document.replaceRange(moodleapi['functions'][k]['value'], replaceStart, cursor);
+            }
+        }
         
         
         return false;
     };
     
     AppInit.appReady(function () {
-        var wordHints = new MoodleApiHint();
-        CodeHintManager.registerHintProvider(wordHints, ["php"], 0);
+        var moodlehints = new MoodleApiHint();
+        CodeHintManager.registerHintProvider(moodlehints, ["php"], 0);
     });
 });
