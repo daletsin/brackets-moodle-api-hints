@@ -3,7 +3,7 @@
     "title": "Moodle Api Hints",
     "description": "Moodle e-learning Hints and autocomplete functions for development.",
     "homepage": "https://github.com/daletsin/brackets-moodle-api-hints.git",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "daniel arriola <daletsinh@gmail.com> (http://danielarriola.com)",
     "license": "MIT",
     "engines": {
